@@ -41,8 +41,8 @@ body{font-family:'Sarabun',sans-serif;background:#f0f0ea;color:var(--text);min-h
 .topbar .date{font-size:12px;color:var(--text3);margin-left:8px;}
 
 /* LAYOUT */
-.layout{display:grid;grid-template-columns:340px 1fr;gap:1rem;padding:1rem;max-width:1100px;margin:0 auto;}
-@media(max-width:700px){.layout{grid-template-columns:1fr;}}
+.layout{display:flex;flex-direction:column;gap:1rem;padding:1rem;max-width:1200px;margin:0 auto;}
+.layout-bottom{display:grid;grid-template-columns:1fr;gap:1rem;} @media(max-width:760px){.layout-bottom{grid-template-columns:1fr;}} @media(max-width:900px){.action-3col{grid-template-columns:1fr!important;}}
 
 /* CARD */
 .card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;box-shadow:var(--card-shadow);}
@@ -55,7 +55,7 @@ body{font-family:'Sarabun',sans-serif;background:#f0f0ea;color:var(--text);min-h
 .tab:not(:last-child){border-right:1px solid var(--border);}
 
 /* CAM */
-.cam-wrap{position:relative;width:100%;aspect-ratio:4/3;background:#111;border-radius:8px;overflow:hidden;margin-bottom:.75rem;}
+.cam-wrap{position:relative;width:100%;aspect-ratio:4/3;background:#111;border-radius:8px;overflow:hidden;margin-bottom:.5rem;}
 #video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);}
 #overlay{position:absolute;top:0;left:0;width:100%;height:100%;transform:scaleX(-1);}
 .cam-badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.6);color:#fff;font-size:11px;padding:3px 10px;border-radius:99px;}
@@ -152,7 +152,7 @@ select.inp{cursor:pointer;}
 .modal h2{font-size:16px;font-weight:700;margin-bottom:1rem;}
 .modal-close{float:right;background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3);}
 
-.right-panel{display:flex;flex-direction:column;gap:1rem;}
+.right-panel{display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:1rem;align-items:start;} @media(max-width:900px){.right-panel{grid-template-columns:1fr;}}
 </style>
 
 <script>
@@ -193,121 +193,155 @@ window.SARABUN_BOLD = "AAEAAAAPAIAAAwBwRFNJRwAAAAEAAV7EAAAACEdERUYtZC3gAAAA/AAAA
 <!-- MAIN LAYOUT -->
 <div class="layout">
 
-  <!-- LEFT: CAMERA + REGISTER -->
-  <div style="display:flex;flex-direction:column;gap:1rem;">
+  <!-- ROW 1: กล้องใหญ่ซ้าย + ลงทะเบียนขวา -->
+  <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:1rem;">
 
-    <!-- Action Card -->
-    <div class="card">
-      <div class="card-title">บันทึกการมาทำงาน</div>
-
-      <!-- เข้า/ออก งาน: ใช้กล้อง -->
-      <div style="border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:.75rem;">
-        <div style="font-size:12px;font-weight:700;color:var(--green-dk);margin-bottom:.5rem;">📷 เข้างาน / ออกงาน / มาสาย (สแกนหน้า)</div>
-        <div class="cam-wrap" style="aspect-ratio:4/3;">
-          <video id="video" autoplay muted playsinline></video>
-          <canvas id="overlay"></canvas>
-          <div class="cam-badge" id="camBadge">กำลังเริ่ม...</div>
-          <div id="faceLabels" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;"></div>
-        </div>
-        <div id="recognizeResult" style="margin-bottom:.75rem;"><span class="badge badge-gray">รอสแกน...</span></div>
-        <div class="mode-grid" style="grid-template-columns:1fr 1fr 1fr;">
-          <button class="mode-btn mode-checkin selected" onclick="selectMode('checkin')" id="mode-checkin">✓ เข้างาน</button>
-          <button class="mode-btn mode-checkout" onclick="selectMode('checkout')" id="mode-checkout">✗ ออกงาน</button>
-          <button class="mode-btn mode-late" onclick="selectMode('late')" id="mode-late">⏰ มาสาย</button>
-        </div>
-        <input class="inp" id="noteInput" placeholder="หมายเหตุ (ไม่บังคับ)" style="margin:.5rem 0;" />
-        <button class="btn btn-green btn-full" onclick="recordAction()">บันทึก</button>
-        <div class="msg" id="actionMsg"></div>
+    <!-- กล้อง + บันทึก (ใหญ่) -->
+    <div class="card" style="display:flex;flex-direction:column;gap:.75rem;">
+      <div class="card-title">📷 บันทึกการมาทำงาน (สแกนหน้า)</div>
+      <div class="cam-wrap" style="aspect-ratio:16/10;">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="overlay"></canvas>
+        <div class="cam-badge" id="camBadge">กำลังเริ่ม...</div>
+        <div id="faceLabels" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;"></div>
       </div>
-
-      <!-- ลา: เลือกชื่อ + ประเภท -->
-      <div style="border:1px solid var(--blue-lt);border-radius:8px;padding:1rem;margin-bottom:.75rem;background:var(--blue-lt);">
-        <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:.75rem;">📋 บันทึกการลา (ไม่ต้องสแกนหน้า)</div>
-        <select class="inp" id="leavePersonName" style="margin-bottom:.5rem;">
-          <option value="">-- เลือกชื่อพนักงาน --</option>
-        </select>
-        <select class="inp" id="leaveType" style="margin-bottom:.5rem;">
-          <option value="sick">ลาป่วย</option>
-          <option value="personal">ลากิจ</option>
-          <option value="vacation">ลาพักร้อน</option>
-          <option value="other">อื่นๆ</option>
-        </select>
-        <input class="inp" id="leaveNote" placeholder="หมายเหตุ" style="margin-bottom:.5rem;" />
-        <button class="btn btn-full" style="background:var(--blue);color:#fff;border-color:var(--blue);" onclick="recordLeave()">📋 บันทึกการลา</button>
-        <div class="msg" id="leaveMsg"></div>
+      <div id="recognizeResult"><span class="badge badge-gray">รอสแกน...</span></div>
+      <div class="mode-grid" style="grid-template-columns:1fr 1fr 1fr;">
+        <button class="mode-btn mode-checkin selected" onclick="selectMode('checkin')" id="mode-checkin">✓ เข้างาน</button>
+        <button class="mode-btn mode-checkout" onclick="selectMode('checkout')" id="mode-checkout">✗ ออกงาน</button>
+        <button class="mode-btn mode-late" onclick="selectMode('late')" id="mode-late">⏰ มาสาย</button>
       </div>
-
-      <!-- ไปราชการ: เลือกชื่อ + สถานที่ -->
-      <div style="border:1px solid var(--purple-lt);border-radius:8px;padding:1rem;background:var(--purple-lt);">
-        <div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:.75rem;">🚗 บันทึกไปราชการ (ไม่ต้องสแกนหน้า)</div>
-        <select class="inp" id="offsitePersonName" style="margin-bottom:.5rem;">
-          <option value="">-- เลือกชื่อพนักงาน --</option>
-        </select>
-        <input class="inp" id="offsitePlace" placeholder="สถานที่ / ภารกิจ" style="margin-bottom:.5rem;" />
-        <input class="inp" id="offsiteNote" placeholder="หมายเหตุเพิ่มเติม (ไม่บังคับ)" style="margin-bottom:.5rem;" />
-        <button class="btn btn-full" style="background:var(--purple);color:#fff;border-color:var(--purple);" onclick="recordOffsite()">🚗 บันทึกไปราชการ</button>
-        <div class="msg" id="offsiteMsg"></div>
-      </div>
+      <input class="inp" id="noteInput" placeholder="หมายเหตุ (ไม่บังคับ)" />
+      <button class="btn btn-green btn-full" style="font-size:16px;padding:14px;font-weight:700;" onclick="recordAction()">✓ บันทึก</button>
+      <div class="msg" id="actionMsg"></div>
     </div>
 
-    <!-- Register Card -->
-    <div class="card">
-      <div class="tabs" style="margin-bottom:.75rem;">
-        <button class="tab active" onclick="switchSubTab('reg','reg')">ลงทะเบียน</button>
-        <button class="tab" onclick="switchSubTab('reg','signers')">ผู้ลงนาม</button>
-        <button class="tab" onclick="switchSubTab('reg','org')">ตั้งค่า</button>
-      </div>
+    <!-- ลงทะเบียนใบหน้า + ลา + ราชการ -->
+    <div style="display:flex;flex-direction:column;gap:.75rem;">
 
-      <!-- Register Tab -->
-      <div class="tab-content active" id="reg-reg">
-        <input class="inp" id="nameInput" placeholder="ชื่อ-นามสกุล" style="margin-bottom:.5rem;" />
-        <input class="inp" id="positionInput" placeholder="ตำแหน่ง (ไม่บังคับ)" style="margin-bottom:.5rem;" />
-        <select class="inp" id="subjectInput" style="margin-bottom:.5rem;">
-          <option value="">-- กลุ่มสาระ / แผนก --</option>
-          <option value="ภาษาไทย">ภาษาไทย</option>
-          <option value="คณิตศาสตร์">คณิตศาสตร์</option>
-          <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
-          <option value="สังคมศึกษาฯ">สังคมศึกษาฯ</option>
-          <option value="สุขศึกษาและพลศึกษา">สุขศึกษาและพลศึกษา</option>
-          <option value="ศิลปะ">ศิลปะ</option>
-          <option value="การงานอาชีพ">การงานอาชีพ</option>
-          <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
-          <option value="กิจกรรมพัฒนาผู้เรียน">กิจกรรมพัฒนาผู้เรียน</option>
-          <option value="บริหาร">บริหาร</option>
-          <option value="สนับสนุนการสอน">สนับสนุนการสอน</option>
-          <option value="other">อื่นๆ</option>
-        </select>
-        <button class="btn btn-green btn-full" onclick="captureAndRegister()">+ ลงทะเบียนใบหน้า</button>
-        <div class="msg" id="msg"></div>
-        <div class="progress" id="progWrap"><div class="progress-bar" id="progBar" style="width:0%"></div></div>
-        <div style="margin-top:.75rem;" id="personList"></div>
-      </div>
-
-      <!-- Signers Tab -->
-      <div class="tab-content" id="reg-signers">
-        <p style="font-size:12px;color:var(--text3);margin-bottom:.75rem;">เพิ่มชื่อผู้มีอำนาจลงนามในเอกสาร PDF</p>
-        <div style="display:flex;gap:6px;margin-bottom:.75rem;">
-          <input class="inp" id="signerName" placeholder="ชื่อ-นามสกุล" style="flex:1;" />
-          <button class="btn btn-blue btn-sm" onclick="addSigner()">+ เพิ่ม</button>
+      <!-- ลงทะเบียน -->
+      <div class="card">
+        <div class="card-title">ลงทะเบียนใบหน้า</div>
+        <div class="tabs" style="margin-bottom:.75rem;">
+          <button class="tab active" onclick="switchSubTab('reg','reg')">ลงทะเบียน</button>
+          <button class="tab" onclick="switchSubTab('reg','signers')">ผู้ลงนาม</button>
+          <button class="tab" onclick="switchSubTab('reg','org')">ตั้งค่า</button>
         </div>
-        <input class="inp" id="signerTitle" placeholder="ตำแหน่ง เช่น ผู้อำนวยการโรงเรียน" style="margin-bottom:.5rem;" />
-        <div id="signerList"></div>
-      </div>
 
-      <!-- Org Settings Tab -->
-      <div class="tab-content" id="reg-org">
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          <input class="inp" id="orgName" placeholder="ชื่อหน่วยงาน / โรงเรียน" />
-          <input class="inp" id="orgDept" placeholder="กลุ่ม / แผนก" />
-          <button class="btn btn-green btn-sm" onclick="saveOrgSettings()">บันทึกการตั้งค่า</button>
+        <!-- Register Tab -->
+        <div class="tab-content active" id="reg-reg">
+          <input class="inp" id="nameInput" placeholder="ชื่อ-นามสกุล" style="margin-bottom:.5rem;" />
+          <input class="inp" id="positionInput" placeholder="ตำแหน่ง (ไม่บังคับ)" style="margin-bottom:.5rem;" />
+          <select class="inp" id="subjectInput" style="margin-bottom:.5rem;">
+            <option value="">-- กลุ่มสาระ / แผนก --</option>
+            <option value="ภาษาไทย">ภาษาไทย</option>
+            <option value="คณิตศาสตร์">คณิตศาสตร์</option>
+            <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
+            <option value="สังคมศึกษาฯ">สังคมศึกษาฯ</option>
+            <option value="สุขศึกษาและพลศึกษา">สุขศึกษาและพลศึกษา</option>
+            <option value="ศิลปะ">ศิลปะ</option>
+            <option value="การงานอาชีพ">การงานอาชีพ</option>
+            <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
+            <option value="กิจกรรมพัฒนาผู้เรียน">กิจกรรมพัฒนาผู้เรียน</option>
+            <option value="บริหาร">บริหาร</option>
+            <option value="สนับสนุนการสอน">สนับสนุนการสอน</option>
+            <option value="other">อื่นๆ</option>
+          </select>
+          <button class="btn btn-green btn-full" onclick="captureAndRegister()">+ ลงทะเบียนใบหน้า</button>
+          <div class="msg" id="msg"></div>
+          <div class="progress" id="progWrap"><div class="progress-bar" id="progBar" style="width:0%"></div></div>
+          <div style="margin-top:.75rem;max-height:220px;overflow-y:auto;" id="personList"></div>
+        </div>
+
+        <!-- Signers Tab -->
+        <div class="tab-content" id="reg-signers">
+          <p style="font-size:12px;color:var(--text3);margin-bottom:.75rem;">เพิ่มชื่อผู้มีอำนาจลงนามในเอกสาร PDF</p>
+          <div style="display:flex;gap:6px;margin-bottom:.75rem;">
+            <input class="inp" id="signerName" placeholder="ชื่อ-นามสกุล" style="flex:1;" />
+            <button class="btn btn-blue btn-sm" onclick="addSigner()">+ เพิ่ม</button>
+          </div>
+          <input class="inp" id="signerTitle" placeholder="ตำแหน่ง เช่น ผู้อำนวยการโรงเรียน" style="margin-bottom:.5rem;" />
+          <div id="signerList"></div>
+        </div>
+
+        <!-- Org Settings Tab -->
+        <div class="tab-content" id="reg-org">
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <input class="inp" id="orgName" placeholder="ชื่อหน่วยงาน / โรงเรียน" />
+            <input class="inp" id="orgDept" placeholder="กลุ่ม / แผนก" />
+            <div style="border-top:1px solid var(--border);margin:.5rem 0;padding-top:.5rem;">
+              <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px;">⏰ กำหนดช่วงเวลาทำงาน</div>
+              <div style="background:var(--green-lt);border-radius:8px;padding:.75rem;margin-bottom:.5rem;">
+                <div style="font-size:11px;font-weight:700;color:var(--green-dk);margin-bottom:6px;">📥 เข้างาน</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                  <div>
+                    <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">เริ่มเข้างานได้ตั้งแต่</div>
+                    <input class="inp" type="time" id="timeInStart" value="07:30" />
+                  </div>
+                  <div>
+                    <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">เข้าหลังนี้ = มาสาย</div>
+                    <input class="inp" type="time" id="timeInLate" value="08:30" />
+                  </div>
+                </div>
+                <div style="font-size:10px;color:var(--green-dk);margin-top:4px;">07:30–08:30 = ตรงเวลา · หลัง 08:30 = มาสาย</div>
+              </div>
+              <div style="background:var(--red-lt);border-radius:8px;padding:.75rem;">
+                <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:6px;">📤 ออกงาน</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                  <div>
+                    <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">ออกก่อนนี้ = กลับก่อนเวลา</div>
+                    <input class="inp" type="time" id="timeOutEarly" value="16:00" />
+                  </div>
+                  <div>
+                    <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">เวลาเลิกงานปกติ</div>
+                    <input class="inp" type="time" id="timeOutNormal" value="16:30" />
+                  </div>
+                </div>
+                <div style="font-size:10px;color:var(--red);margin-top:4px;">ก่อน 16:00 = กลับก่อนเวลา · 16:00–16:30 = ออกตรงเวลา</div>
+              </div>
+            </div>
+            <button class="btn btn-green btn-sm" onclick="saveOrgSettings()">บันทึกการตั้งค่า</button>
+          </div>
+        </div>
+      </div><!-- end register card -->
+      
+      <!-- ลา -->
+      <div class="card" style="border-left:3px solid var(--blue);">
+        <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:.75rem;">📋 บันทึกการลา <span style="font-size:10px;font-weight:400;">(ไม่ต้องสแกนหน้า)</span></div>
+        <div style="display:flex;flex-direction:column;gap:.5rem;">
+          <select class="inp" id="leavePersonName"><option value="">-- เลือกชื่อ --</option></select>
+          <select class="inp" id="leaveType">
+            <option value="sick">ลาป่วย</option>
+            <option value="personal">ลากิจ</option>
+            <option value="vacation">ลาพักร้อน</option>
+            <option value="other">อื่นๆ</option>
+          </select>
+          <input class="inp" id="leaveNote" placeholder="หมายเหตุ" />
+          <button class="btn btn-full" style="background:var(--blue);color:#fff;border-color:var(--blue);" onclick="recordLeave()">📋 บันทึกการลา</button>
+          <div class="msg" id="leaveMsg"></div>
         </div>
       </div>
-    </div>
 
-  </div><!-- END LEFT -->
+      <!-- ราชการ -->
+      <div class="card" style="border-left:3px solid var(--purple);">
+        <div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:.75rem;">🚗 บันทึกไปราชการ <span style="font-size:10px;font-weight:400;">(ไม่ต้องสแกนหน้า)</span></div>
+        <div style="display:flex;flex-direction:column;gap:.5rem;">
+          <select class="inp" id="offsitePersonName"><option value="">-- เลือกชื่อ --</option></select>
+          <input class="inp" id="offsitePlace" placeholder="สถานที่ / ภารกิจ" />
+          <input class="inp" id="offsiteNote" placeholder="หมายเหตุเพิ่มเติม (ไม่บังคับ)" />
+          <button class="btn btn-full" style="background:var(--purple);color:#fff;border-color:var(--purple);" onclick="recordOffsite()">🚗 บันทึกไปราชการ</button>
+          <div class="msg" id="offsiteMsg"></div>
+        </div>
+      </div>
 
-  <!-- RIGHT PANEL -->
-  <div class="right-panel">
+    </div><!-- end right col (register+leave+offsite) -->
+  </div><!-- end row 1 -->
+
+  <!-- ROW 2: Stats + Log + PDF -->
+  <div class="layout-bottom">
+    <div style="display:none;"></div><!-- placeholder for layout-bottom left (unused) -->
+    <!-- RIGHT PANEL (full width via layout-bottom override below) -->
+    <div class="right-panel" style="grid-column:1/-1;">
 
     <!-- Stats -->
     <div class="card">
@@ -361,10 +395,9 @@ window.SARABUN_BOLD = "AAEAAAAPAIAAAwBwRFNJRwAAAAEAAV7EAAAACEdERUYtZC3gAAAA/AAAA
 
       <button class="btn btn-purple btn-full" onclick="generatePDF()">⬇ สร้าง PDF พร้อมลายเซ็น</button>
       <div class="msg" id="pdfMsg"></div>
-    </div>
-
-  </div><!-- END RIGHT -->
-</div>
+    </div><!-- END RIGHT PANEL -->
+  </div><!-- END layout-bottom -->
+</div><!-- END layout -->
 
 <script>
 // ============================================================
@@ -377,7 +410,7 @@ let persons = [];
 let logs = [];
 let signers = [];
 let signatures = {};
-let orgSettings = {name:'', dept:''};
+let orgSettings = {name:'', dept:'', timeInStart:'07:30', timeInLate:'08:30', timeOutEarly:'16:00', timeOutNormal:'16:30'};
 let currentMode = 'checkin';
 let lastRecognized = null;
 let currentFilter = 'all';
@@ -544,6 +577,13 @@ async function startCamera() {
   }
 }
 
+// Auto-snap state
+let autoSnapName = null;      // name being tracked for auto-snap
+let autoSnapSince = null;     // timestamp when continuous detection started
+let autoSnapCooldown = {};    // name → timestamp of last auto-snap (prevent double)
+const AUTO_SNAP_HOLD = 3000;  // ms face must be seen continuously
+const AUTO_SNAP_COOLDOWN = 8000; // ms before same person can auto-snap again
+
 function startDetectLoop(vid) {
   setInterval(async () => {
     if (!modelsLoaded || vid.paused || vid.videoWidth === 0) return;
@@ -569,17 +609,32 @@ function startDetectLoop(vid) {
           const match = matcher.findBestMatch(det.descriptor);
           const box = det.detection.box;
           const known = match.label !== 'unknown';
-          ctx.strokeStyle = known ? '#4a8c1c' : '#c94020';
-          ctx.lineWidth = 2;
+          // Draw countdown arc when tracking
+          const isTracking = known && autoSnapName === match.label && autoSnapSince;
+          const elapsed = isTracking ? Date.now() - autoSnapSince : 0;
+          const pct = Math.min(elapsed / AUTO_SNAP_HOLD, 1);
+          ctx.strokeStyle = isTracking ? `hsl(${120*pct},80%,35%)` : (known ? '#4a8c1c' : '#c94020');
+          ctx.lineWidth = isTracking ? 3 : 2;
           ctx.strokeRect(box.x, box.y, box.width, box.height);
+          // Progress arc overlay
+          if (isTracking && pct > 0) {
+            ctx.beginPath();
+            ctx.arc(box.x + box.width/2, box.y + box.height/2,
+              Math.min(box.width,box.height)/2 + 8,
+              -Math.PI/2, -Math.PI/2 + 2*Math.PI*pct);
+            ctx.strokeStyle = '#4a8c1c';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+          }
           if (known && !lastRecognized) lastRecognized = match.label;
           const tag = document.createElement('div');
           tag.className = 'face-tag';
           tag.style.left = (dims.width - box.x - box.width) * scaleX + 'px';
-          tag.style.top = Math.max(0, box.y * scaleY - 24) + 'px';
-          tag.style.background = known ? 'rgba(74,140,28,0.9)' : 'rgba(201,64,32,0.9)';
+          tag.style.top = Math.max(0, box.y * scaleY - 26) + 'px';
+          tag.style.background = known ? (isTracking ? `rgba(30,130,30,0.95)` : 'rgba(74,140,28,0.9)') : 'rgba(201,64,32,0.9)';
           tag.style.color = '#fff';
-          tag.textContent = known ? `${match.label} (${Math.round((1-match.distance)*100)}%)` : 'ไม่รู้จัก';
+          const countdown = isTracking && pct < 1 ? ` ⏱${((AUTO_SNAP_HOLD-elapsed)/1000).toFixed(1)}s` : '';
+          tag.textContent = known ? `${match.label} (${Math.round((1-match.distance)*100)}%)${countdown}` : 'ไม่รู้จัก';
           labelsEl.appendChild(tag);
         });
       } else {
@@ -590,16 +645,89 @@ function startDetectLoop(vid) {
         });
         document.getElementById('camBadge').textContent = resized.length > 0 ? `พบ ${resized.length} ใบหน้า` : '✓ กล้องพร้อม';
       }
+
       const res = document.getElementById('recognizeResult');
+
+      // ── Auto-snap logic ──────────────────────────────────────────
+      const now = Date.now();
       if (lastRecognized) {
-        res.innerHTML = `<span class="badge badge-green">✓ พบ: <strong>${lastRecognized}</strong></span>`;
-      } else if (resized.length > 0) {
-        res.innerHTML = `<span class="badge badge-red">ไม่พบในระบบ</span>`;
+        const cooldownOk = !autoSnapCooldown[lastRecognized] || (now - autoSnapCooldown[lastRecognized]) > AUTO_SNAP_COOLDOWN;
+        if (!cooldownOk) {
+          // In cooldown — show countdown
+          const cd = Math.ceil((AUTO_SNAP_COOLDOWN - (now - autoSnapCooldown[lastRecognized])) / 1000);
+          res.innerHTML = `<span class="badge badge-gray">✓ ${lastRecognized} — รอ ${cd}s ก่อนบันทึกอีกครั้ง</span>`;
+          autoSnapName = null; autoSnapSince = null;
+        } else if (autoSnapName === lastRecognized) {
+          // Same person — check hold time
+          const held = now - autoSnapSince;
+          const pct = Math.min(held / AUTO_SNAP_HOLD, 1);
+          res.innerHTML = `<span class="badge badge-green" style="background:hsl(${100*pct},60%,35%);color:#fff;">
+            ✓ พบ: <strong>${lastRecognized}</strong> — บันทึกใน ${((AUTO_SNAP_HOLD-held)/1000).toFixed(1)}s
+            <span style="display:inline-block;width:${Math.round(pct*40)}px;height:4px;background:#fff;border-radius:2px;margin-left:6px;vertical-align:middle;"></span>
+          </span>`;
+          if (held >= AUTO_SNAP_HOLD) {
+            // 🎉 AUTO SNAP!
+            autoSnapCooldown[lastRecognized] = now;
+            autoSnapName = null; autoSnapSince = null;
+            recordActionAuto(lastRecognized);
+          }
+        } else {
+          // New person detected — start timer
+          autoSnapName = lastRecognized;
+          autoSnapSince = now;
+          res.innerHTML = `<span class="badge badge-green">✓ พบ: <strong>${lastRecognized}</strong> — กำลังนับ...</span>`;
+        }
       } else {
-        res.innerHTML = `<span class="badge badge-gray">รอสแกน...</span>`;
+        // No face — reset timer
+        if (autoSnapName) { autoSnapName = null; autoSnapSince = null; }
+        if (resized.length > 0) {
+          res.innerHTML = `<span class="badge badge-red">ไม่พบในระบบ</span>`;
+        } else {
+          res.innerHTML = `<span class="badge badge-gray">รอสแกน...</span>`;
+        }
       }
     } catch(e) {}
-  }, 800);
+  }, 300); // faster poll for smoother countdown
+}
+
+async function recordActionAuto(name) {
+  // Flash feedback
+  const res = document.getElementById('recognizeResult');
+  res.innerHTML = `<span class="badge badge-green" style="background:#2d7a10;color:#fff;font-size:14px;padding:8px 16px;">⚡ บันทึกอัตโนมัติ: ${name}</span>`;
+  // Play a short beep
+  try {
+    const ctx2 = new AudioContext();
+    const osc = ctx2.createOscillator();
+    const gain = ctx2.createGain();
+    osc.connect(gain); gain.connect(ctx2.destination);
+    osc.frequency.value = 880; gain.gain.setValueAtTime(0.3, 0);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx2.currentTime + 0.3);
+    osc.start(); osc.stop(ctx2.currentTime + 0.3);
+  } catch(e) {}
+
+  const now = new Date();
+  let mode = currentMode;
+  let autoNote = '';
+  if (mode === 'checkin') {
+    if (isTooEarly()) { autoNote = 'เข้าก่อนเวลา (เปิดรับ '+(orgSettings.timeInStart||'07:30')+')'; }
+    else if (isLate()) { mode='late'; autoNote='มาสายอัตโนมัติ (กำหนด '+(orgSettings.timeInLate||'08:30')+')'; }
+  }
+  let earlyOut = false;
+  if (mode === 'checkout' && isEarlyOut()) {
+    earlyOut = true;
+    autoNote = 'กลับก่อนเวลา (กำหนด '+(orgSettings.timeOutEarly||'16:00')+')';
+  }
+  const log = {
+    name, mode, leaveSubType:'', note: autoNote, earlyOut,
+    time: now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',hour12:false}),
+    date: now.toISOString().slice(0,10),
+    ts: Date.now(), id: Date.now().toString(), auto: true,
+  };
+  logs.unshift(log);
+  await saveLog(log);
+  document.getElementById('actionMsg').textContent = `⚡ Auto: ${modeLabels[mode]?.label||mode} — ${name} ${autoNote}`;
+  setTimeout(() => document.getElementById('actionMsg').textContent='', 5000);
+  renderLogs(); updateStats();
 }
 
 async function captureAndRegister() {
@@ -663,8 +791,31 @@ async function recordAction() {
   const name = lastRecognized;
   const now = new Date();
   const note = document.getElementById('noteInput').value.trim();
+
+  // Auto-detect late / too-early check-in
+  let mode = currentMode;
+  let autoNote = note;
+  let earlyOut = false;
+  if (mode === 'checkin') {
+    if (isTooEarly()) {
+      autoNote = (note?note+' | ':'') + 'เข้าก่อนเวลา (เปิดรับ '+( orgSettings.timeInStart||'07:30')+')';
+    } else if (isLate()) {
+      mode = 'late';
+      autoNote = (note?note+' | ':'') + 'มาสายอัตโนมัติ (กำหนด '+(orgSettings.timeInLate||'08:30')+')';
+    }
+  }
+  // Detect early check-out (กลับก่อนเวลา)
+  if (mode === 'checkout') {
+    if (isEarlyOut()) {
+      earlyOut = true;
+      autoNote = (note?note+' | ':'') + 'กลับก่อนเวลา (กำหนด '+(orgSettings.timeOutEarly||'16:00')+')';
+    }
+  }
+
   const log = {
-    name, mode: currentMode, leaveSubType: '', note,
+    name, mode, leaveSubType: '',
+    note: autoNote,
+    earlyOut,
     time: now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',hour12:false}),
     date: now.toISOString().slice(0,10),
     ts: Date.now(), id: Date.now().toString(),
@@ -672,8 +823,12 @@ async function recordAction() {
   logs.unshift(log);
   await saveLog(log);
   document.getElementById('noteInput').value = '';
-  document.getElementById('actionMsg').textContent = `✓ บันทึก ${modeLabels[currentMode].label} — ${name}`;
-  setTimeout(() => document.getElementById('actionMsg').textContent = '', 3000);
+
+  let msg = `✓ บันทึก ${modeLabels[mode]?.label||mode} — ${name}`;
+  if (mode === 'late' && currentMode === 'checkin') msg += ' ⚠ (มาสาย)';
+  if (earlyOut) msg += ' ⚠ (กลับก่อนเวลา)';
+  document.getElementById('actionMsg').textContent = msg;
+  setTimeout(() => document.getElementById('actionMsg').textContent = '', 4000);
   renderLogs(); updateStats();
 }
 
@@ -838,6 +993,7 @@ async function generatePDF() {
   if (dept) { setNormal(11); doc.text(dept, 105, 27, {align:'center'}); }
 
   const title = reportType==='daily' ? 'รายงานการมาทำงานประจำวัน' : 'สรุปการมาทำงานประจำเดือน';
+  const timeRule = getTimeRuleText();
   setBold(13);
   doc.text(title, 105, 34, {align:'center'});
 
@@ -847,6 +1003,8 @@ async function generatePDF() {
   doc.text('วันที่ ' + thaiDate, 105, 41, {align:'center'});
   doc.setDrawColor(180); doc.setLineWidth(0.4);
   doc.line(15, 45, 195, 45);
+  setNormal(9); doc.setTextColor(120);
+  doc.text(timeRule, 105, 49, {align:'center'});
 
   // Filter logs
   const dayLogs = logs.filter(l => l.date === reportDate);
@@ -864,13 +1022,13 @@ async function generatePDF() {
   let bx = 15;
   boxes.forEach(([label, val, color]) => {
     doc.setDrawColor(...color); doc.setLineWidth(0.6);
-    doc.rect(bx, 49, 34, 16);
+    doc.rect(bx, 54, 34, 16);
     doc.setFillColor(...color.map(c => Math.min(255, c+160)));
-    doc.rect(bx, 49, 34, 7, 'F');
+    doc.rect(bx, 54, 34, 7, 'F');
     setNormal(8); doc.setTextColor(...color);
-    doc.text(label, bx+17, 54.5, {align:'center'});
+    doc.text(label, bx+17, 59.5, {align:'center'});
     setBold(14); doc.setTextColor(30);
-    doc.text(String(val), bx+17, 62, {align:'center'});
+    doc.text(String(val), bx+17, 67, {align:'center'});
     bx += 36;
   });
 
@@ -899,7 +1057,7 @@ async function generatePDF() {
   if (!tableData.length) tableData.push(['ไม่มีข้อมูลในวันนี้','','','','','']);
 
   doc.autoTable({
-    startY: 70,
+    startY: 75,
     head: [['ชื่อ-สกุล','กลุ่มสาระ/แผนก','เวลา','ประเภท','ประเภทการลา','หมายเหตุ']],
     body: tableData,
     styles:{ font:'Sarabun', fontSize:9, cellPadding:2 },
@@ -911,6 +1069,24 @@ async function generatePDF() {
     },
     margin:{left:15,right:15},
   });
+
+  // No-checkout section
+  const checkedInPDF = new Set(dayLogs.filter(l=>l.mode==='checkin'||l.mode==='late').map(l=>l.name));
+  const checkedOutPDF = new Set(dayLogs.filter(l=>l.mode==='checkout').map(l=>l.name));
+  const noCheckoutPDF = [...checkedInPDF].filter(n=>!checkedOutPDF.has(n));
+  let ncY = (doc.lastAutoTable.finalY||150)+8;
+  if (noCheckoutPDF.length>0) {
+    if (ncY>230){doc.addPage();ncY=20;}
+    setBold(11); doc.setTextColor(180,120,0);
+    doc.text('ยังไม่ลงเวลากลับ ('+noCheckoutPDF.length+' คน)', 15, ncY);
+    ncY+=2;
+    const ncData = noCheckoutPDF.map(n=>{const p=personMap[n]||{};return[n,p.subject||p.position||'-'];});
+    doc.autoTable({startY:ncY,head:[['ชื่อ-สกุล','กลุ่มสาระ/แผนก']],body:ncData,
+      styles:{font:'Sarabun',fontSize:9,cellPadding:2},
+      headStyles:{font:'Sarabun',fontStyle:'bold',fillColor:[180,120,0],textColor:255,fontSize:9},
+      alternateRowStyles:{fillColor:[255,250,235]},
+      columnStyles:{0:{cellWidth:80},1:{cellWidth:'auto'}},margin:{left:15,right:15}});
+  }
 
   // Absent section
   const loggedNames = new Set(dayLogs.map(l => l.name));
@@ -1033,10 +1209,11 @@ function renderLogs(filter) {
   el.innerHTML = filtered.map(l => {
     const m = modeInfo[l.mode]||{label:l.mode,cls:'badge-gray'};
     const sub = l.leaveSubType ? `(${leaveNames[l.leaveSubType]||l.leaveSubType})` : '';
+    const earlyBadge = l.earlyOut ? '<span class="badge badge-orange" style="font-size:10px;margin-left:4px;">กลับก่อนเวลา</span>' : '';
     return `<tr>
       <td style="font-weight:600;">${l.name}</td>
       <td style="color:var(--text2);">${l.time}</td>
-      <td><span class="badge ${m.cls}" style="font-size:11px;">${m.label} ${sub}</span></td>
+      <td><span class="badge ${m.cls}" style="font-size:11px;">${m.label} ${sub}</span>${earlyBadge}</td>
       <td style="color:var(--text3);font-size:12px;">${l.note||''}</td>
     </tr>`;
   }).join('');
@@ -1072,6 +1249,30 @@ function updateStats() {
     absentEl.style.display = persons.length > 0 ? 'block' : 'none';
     absentEl.innerHTML = persons.length > 0 ? '<div style="font-size:12px;color:var(--green-dk);padding:5px 0;">✓ ทุกคนลงเวลาแล้ว</div>' : '';
   }
+
+  // No-checkout: checked in but no checkout record today
+  const checkedIn = new Set(todayLogs.filter(l=>l.mode==='checkin'||l.mode==='late').map(l=>l.name));
+  const checkedOut = new Set(todayLogs.filter(l=>l.mode==='checkout').map(l=>l.name));
+  const noCheckout = [...checkedIn].filter(n => !checkedOut.has(n));
+  let noCoEl = document.getElementById('noCheckoutList');
+  if (!noCoEl) {
+    noCoEl = document.createElement('div');
+    noCoEl.id = 'noCheckoutList';
+    absentEl.parentNode.insertAdjacentElement('afterend', noCoEl);
+  }
+  if (noCheckout.length > 0) {
+    noCoEl.style.display='block';
+    noCoEl.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--orange);margin-bottom:5px;margin-top:.5rem;">⚠ ยังไม่ลงเวลากลับ ('+noCheckout.length+' คน):</div>' +
+      noCheckout.map(n => {
+        const p = persons.find(x=>x.name===n)||{};
+        return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fff8e6;border-radius:6px;margin-bottom:4px;font-size:12px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#ffe0a0;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--orange);font-size:11px;">${n.charAt(0)}</div>
+          <div><div style="font-weight:600;">${n}</div><div style="color:#888;font-size:10px;">${p.subject||p.position||''}</div></div>
+        </div>`;
+      }).join('');
+  } else {
+    noCoEl.style.display='none';
+  }
 }
 
 // ============================================================
@@ -1091,14 +1292,38 @@ function applyOrgSettings() {
     document.getElementById('orgName').value = orgSettings.name;
   }
   if (orgSettings.dept) document.getElementById('orgDept').value = orgSettings.dept;
+  if (orgSettings.timeInStart) document.getElementById('timeInStart').value = orgSettings.timeInStart;
+  if (orgSettings.timeInLate) document.getElementById('timeInLate').value = orgSettings.timeInLate;
+  if (orgSettings.timeOutEarly) document.getElementById('timeOutEarly').value = orgSettings.timeOutEarly;
+  if (orgSettings.timeOutNormal) document.getElementById('timeOutNormal').value = orgSettings.timeOutNormal;
 }
 
 function saveOrgSettings() {
   orgSettings.name = document.getElementById('orgName').value.trim();
   orgSettings.dept = document.getElementById('orgDept').value.trim();
+  orgSettings.timeInStart  = document.getElementById('timeInStart').value;
+  orgSettings.timeInLate   = document.getElementById('timeInLate').value;
+  orgSettings.timeOutEarly = document.getElementById('timeOutEarly').value;
+  orgSettings.timeOutNormal= document.getElementById('timeOutNormal').value;
   applyOrgSettings();
   saveOrgSettingsDB();
-  alert('บันทึกการตั้งค่าแล้ว');
+  alert('✓ บันทึกการตั้งค่าแล้ว');
+}
+
+// Helper: compare HH:MM strings
+function toMinutes(t) { if(!t) return 0; const [h,m] = t.split(':').map(Number); return h*60+m; }
+function nowMinutes() { const n=new Date(); return n.getHours()*60+n.getMinutes(); }
+// late = arrived after timeInLate
+function isLate() { return nowMinutes() > toMinutes(orgSettings.timeInLate||orgSettings.timeIn||'08:30'); }
+// too early = arrived before timeInStart
+function isTooEarly() { return nowMinutes() < toMinutes(orgSettings.timeInStart||'07:30'); }
+// early out = left before timeOutEarly
+function isEarlyOut() { return nowMinutes() < toMinutes(orgSettings.timeOutEarly||orgSettings.timeOut||'16:00'); }
+// on time out = between timeOutEarly and timeOutNormal
+function isOnTimeOut() { const n=nowMinutes(); return n>=toMinutes(orgSettings.timeOutEarly||'16:00') && n<=toMinutes(orgSettings.timeOutNormal||'16:30'); }
+function getTimeRuleText() {
+  const s=orgSettings;
+  return 'เข้างาน: '+( s.timeInStart||'07:30')+' – '+(s.timeInLate||'08:30')+' น.   ออกงาน: '+(s.timeOutEarly||'16:00')+' – '+(s.timeOutNormal||'16:30')+' น.';
 }
 
 function setMsg(t) { document.getElementById('msg').textContent = t; }
@@ -1111,5 +1336,6 @@ function showProg(pct) {
 document.getElementById('reportDate').value = new Date().toISOString().slice(0,10);
 initFirebase();
 </script>
+</div><!-- close layout -->
 </body>
 </html>
