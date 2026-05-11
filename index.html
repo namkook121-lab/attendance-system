@@ -146,7 +146,7 @@ select.inp{cursor:pointer;}
 .scroll-area{max-height:320px;overflow-y:auto;}
 
 /* MODAL */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;} .modal-overlay#fbModal{display:none!important;}
 .modal-overlay.open{display:flex;}
 .modal{background:#fff;border-radius:var(--radius);padding:1.5rem;width:90%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,0.2);}
 .modal h2{font-size:16px;font-weight:700;margin-bottom:1rem;}
@@ -175,28 +175,7 @@ window.SARABUN_BOLD = "AAEAAAAPAIAAAwBwRFNJRwAAAAEAAV7EAAAACEdERUYtZC3gAAAA/AAAA
   </div>
 </div>
 
-<!-- FIREBASE SETUP MODAL -->
-<div class="modal-overlay open" id="fbModal">
-  <div class="modal">
-    <h2>🔥 ตั้งค่า Firebase</h2>
-    <div style="background:#fff8e1;border:1px solid #fde68a;border-radius:8px;padding:.75rem;margin-bottom:.75rem;font-size:12px;color:#92400e;">
-      ⚠️ <strong>เปิดจาก file:// อยู่</strong> — Firebase จะใช้งานได้ แต่กล้องต้องเปิดผ่าน server<br>
-      แนะนำใช้ <strong>Demo Mode</strong> หรืออัปโหลดไฟล์ขึ้น GitHub Pages / hosting ใดๆ
-    </div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:.75rem;">กรอก Firebase config จาก Project Settings → Web App<br>
-    <a href="https://console.firebase.google.com" target="_blank" style="color:var(--blue);">console.firebase.google.com</a></p>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <input class="inp" id="fb_apiKey" placeholder="apiKey: AIzaSy..." />
-      <input class="inp" id="fb_authDomain" placeholder="authDomain: xxx.firebaseapp.com" />
-      <input class="inp" id="fb_projectId" placeholder="projectId: my-project-id" />
-    </div>
-    <div style="display:flex;gap:8px;margin-top:1rem;">
-      <button class="btn btn-green btn-full" onclick="initFirebase()">เชื่อมต่อ Firebase</button>
-      <button class="btn btn-full" onclick="useDemo()">Demo Mode (localStorage)</button>
-    </div>
-    <div class="msg" id="fbMsg"></div>
-  </div>
-</div>
+<!-- Firebase auto-initialized -->
 
 <!-- SIGNATURE MODAL -->
 <div class="modal-overlay" id="sigModal">
@@ -420,22 +399,25 @@ setInterval(() => {
 // FIREBASE
 // ============================================================
 function initFirebase() {
-  const apiKey = document.getElementById('fb_apiKey').value.trim();
-  const authDomain = document.getElementById('fb_authDomain').value.trim();
-  const projectId = document.getElementById('fb_projectId').value.trim();
-  if (!apiKey || !projectId) { document.getElementById('fbMsg').textContent = '⚠ กรุณากรอก apiKey และ projectId'; return; }
   try {
     if (!firebase.apps.length) {
-      firebase.initializeApp({apiKey, authDomain, projectId});
+      firebase.initializeApp({
+        apiKey: "AIzaSyB6yKSL6ib3lsPR7C45-JXq5mbAZRXEkDI",
+        authDomain: "loginuserstudent.firebaseapp.com",
+        projectId: "loginuserstudent",
+        storageBucket: "loginuserstudent.firebasestorage.app",
+        messagingSenderId: "896556030353",
+        appId: "1:896556030353:web:cc2df58b5780ec8b136230"
+      });
     }
     db = firebase.firestore();
-    document.getElementById('fbModal').classList.remove('open');
-    document.getElementById('fbMsg').textContent = '';
     loadFromFirestore();
-    loadModels();
   } catch(e) {
-    document.getElementById('fbMsg').textContent = '⚠ ' + e.message;
+    console.warn('Firebase error, fallback to demo:', e.message);
+    demoMode = true;
+    loadFromLocal();
   }
+  loadModels();
 }
 
 function useDemo() {
@@ -1125,8 +1107,9 @@ function showProg(pct) {
   document.getElementById('progBar').style.width = pct+'%';
 }
 
-// init date
+// Auto-initialize on load
 document.getElementById('reportDate').value = new Date().toISOString().slice(0,10);
+initFirebase();
 </script>
 </body>
 </html>
