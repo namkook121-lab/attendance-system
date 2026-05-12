@@ -381,11 +381,71 @@ window.SARABUN_BOLD = "AAEAAAAPAIAAAwBwRFNJRwAAAAEAAV7EAAAACEdERUYtZC3gAAAA/AAAA
     <!-- PDF Export -->
     <div class="card">
       <div class="card-title">ออกรายงาน PDF</div>
-      <div style="display:flex;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;">
-        <input class="inp" type="date" id="reportDate" style="flex:1;" />
-        <select class="inp" id="reportType" style="flex:1;">
-          <option value="daily">รายงานประจำวัน</option>
-          <option value="summary">สรุปรายเดือน</option>
+
+      <!-- Report type tabs -->
+      <div class="tabs" style="margin-bottom:.75rem;" id="reportTypeTabs">
+        <button class="tab active" onclick="switchReportType('daily')">รายวัน</button>
+        <button class="tab" onclick="switchReportType('range')">กำหนดช่วง</button>
+        <button class="tab" onclick="switchReportType('monthly')">รายเดือน</button>
+      </div>
+
+      <!-- Daily -->
+      <div id="rt-daily" style="margin-bottom:.75rem;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">เลือกวันที่</div>
+        <input class="inp" type="date" id="reportDate" />
+      </div>
+
+      <!-- Range -->
+      <div id="rt-range" style="display:none;margin-bottom:.75rem;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">ตั้งแต่วันที่</div>
+            <input class="inp" type="date" id="reportDateFrom" />
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">ถึงวันที่</div>
+            <input class="inp" type="date" id="reportDateTo" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly -->
+      <div id="rt-monthly" style="display:none;margin-bottom:.75rem;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">เดือน</div>
+            <select class="inp" id="reportMonth">
+              <option value="0">มกราคม</option><option value="1">กุมภาพันธ์</option>
+              <option value="2">มีนาคม</option><option value="3">เมษายน</option>
+              <option value="4">พฤษภาคม</option><option value="5">มิถุนายน</option>
+              <option value="6">กรกฎาคม</option><option value="7">สิงหาคม</option>
+              <option value="8">กันยายน</option><option value="9">ตุลาคม</option>
+              <option value="10">พฤศจิกายน</option><option value="11">ธันวาคม</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">ปี (พ.ศ.)</div>
+            <input class="inp" type="number" id="reportYear" min="2560" max="2580" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter by subject -->
+      <div style="margin-bottom:.75rem;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">กรองกลุ่มสาระ (ไม่เลือก = ทั้งหมด)</div>
+        <select class="inp" id="reportSubject">
+          <option value="">-- ทั้งหมด --</option>
+          <option value="ภาษาไทย">ภาษาไทย</option>
+          <option value="คณิตศาสตร์">คณิตศาสตร์</option>
+          <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
+          <option value="สังคมศึกษาฯ">สังคมศึกษาฯ</option>
+          <option value="สุขศึกษาและพลศึกษา">สุขศึกษาและพลศึกษา</option>
+          <option value="ศิลปะ">ศิลปะ</option>
+          <option value="การงานอาชีพ">การงานอาชีพ</option>
+          <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
+          <option value="กิจกรรมพัฒนาผู้เรียน">กิจกรรมพัฒนาผู้เรียน</option>
+          <option value="บริหาร">บริหาร</option>
+          <option value="สนับสนุนการสอน">สนับสนุนการสอน</option>
         </select>
       </div>
 
@@ -582,7 +642,7 @@ let autoSnapName = null;      // name being tracked for auto-snap
 let autoSnapSince = null;     // timestamp when continuous detection started
 let autoSnapCooldown = {};    // name → timestamp of last auto-snap (prevent double)
 const AUTO_SNAP_HOLD = 3000;  // ms face must be seen continuously
-const AUTO_SNAP_COOLDOWN = 8000; // ms before same person can auto-snap again
+const AUTO_SNAP_COOLDOWN = 5000; // ms before same person can auto-snap again
 
 function startDetectLoop(vid) {
   setInterval(async () => {
@@ -970,11 +1030,44 @@ function closeSigModal() { document.getElementById('sigModal').classList.remove(
 // ============================================================
 async function generatePDF() {
   const {jsPDF} = window.jspdf;
-  const reportDate = document.getElementById('reportDate').value;
-  const reportType = document.getElementById('reportType').value;
   document.getElementById('pdfMsg').textContent = 'กำลังสร้าง PDF...';
 
-  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  // ── Determine date range ────────────────────────────────────────────────
+  let dateFrom, dateTo, titleSuffix, fileLabel;
+  if (currentReportType === 'daily') {
+    dateFrom = dateTo = document.getElementById('reportDate').value;
+    const d = new Date(dateFrom);
+    titleSuffix = d.toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    fileLabel = dateFrom;
+  } else if (currentReportType === 'range') {
+    dateFrom = document.getElementById('reportDateFrom').value;
+    dateTo   = document.getElementById('reportDateTo').value;
+    if (!dateFrom || !dateTo || dateFrom > dateTo) {
+      document.getElementById('pdfMsg').textContent = '⚠ กรุณาเลือกช่วงวันที่ให้ถูกต้อง';
+      return;
+    }
+    const dF = new Date(dateFrom).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'});
+    const dT = new Date(dateTo).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'});
+    titleSuffix = `${dF} – ${dT}`;
+    fileLabel = `${dateFrom}_to_${dateTo}`;
+  } else { // monthly
+    const m = parseInt(document.getElementById('reportMonth').value);
+    const yBE = parseInt(document.getElementById('reportYear').value);
+    const yCE = yBE - 543;
+    const firstDay = new Date(yCE, m, 1);
+    const lastDay  = new Date(yCE, m+1, 0);
+    dateFrom = firstDay.toISOString().slice(0,10);
+    dateTo   = lastDay.toISOString().slice(0,10);
+    const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+    titleSuffix = `${monthNames[m]} ${yBE}`;
+    fileLabel = `${yCE}-${String(m+1).padStart(2,'0')}`;
+  }
+
+  const filterSubject = document.getElementById('reportSubject').value;
+  const reportTitle = currentReportType==='daily' ? 'รายงานการมาทำงานประจำวัน'
+    : currentReportType==='range' ? 'รายงานการมาทำงาน (กำหนดช่วงเวลา)' : 'สรุปการมาทำงานประจำเดือน';
+
+  const doc = new jsPDF({orientation: currentReportType==='daily' ? 'portrait':'landscape', unit:'mm', format:'a4'});
 
   // ---- Embed Sarabun Thai font ----
   doc.addFileToVFS('Sarabun-Regular.ttf', window.SARABUN_REGULAR);
@@ -983,35 +1076,41 @@ async function generatePDF() {
   doc.addFont('Sarabun-Bold.ttf', 'Sarabun', 'bold');
   const setNormal = (size) => { doc.setFont('Sarabun','normal'); doc.setFontSize(size); doc.setTextColor(30); };
   const setBold   = (size) => { doc.setFont('Sarabun','bold');   doc.setFontSize(size); doc.setTextColor(30); };
+  const PW = doc.internal.pageSize.getWidth();
 
   const org  = orgSettings.name || 'หน่วยงาน';
   const dept = orgSettings.dept || '';
 
   // Header
-  setBold(16);
-  doc.text(org, 105, 20, {align:'center'});
-  if (dept) { setNormal(11); doc.text(dept, 105, 27, {align:'center'}); }
-
-  const title = reportType==='daily' ? 'รายงานการมาทำงานประจำวัน' : 'สรุปการมาทำงานประจำเดือน';
-  const timeRule = getTimeRuleText();
-  setBold(13);
-  doc.text(title, 105, 34, {align:'center'});
-
-  const d = new Date(reportDate);
-  const thaiDate = d.toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  setNormal(10);
-  doc.text('วันที่ ' + thaiDate, 105, 41, {align:'center'});
+  setBold(16); doc.text(org, PW/2, 20, {align:'center'});
+  if (dept) { setNormal(11); doc.text(dept, PW/2, 27, {align:'center'}); }
+  setBold(13); doc.text(reportTitle, PW/2, 34, {align:'center'});
+  setNormal(10); doc.text(titleSuffix, PW/2, 41, {align:'center'});
+  if (filterSubject) { setNormal(9); doc.setTextColor(80); doc.text('กลุ่มสาระ: ' + filterSubject, PW/2, 46, {align:'center'}); }
   doc.setDrawColor(180); doc.setLineWidth(0.4);
-  doc.line(15, 45, 195, 45);
+  const lineY = filterSubject ? 49 : 45;
+  doc.line(15, lineY, PW-15, lineY);
   setNormal(9); doc.setTextColor(120);
-  doc.text(timeRule, 105, 49, {align:'center'});
+  doc.text(getTimeRuleText(), PW/2, lineY+4, {align:'center'});
 
-  // Filter logs
-  const dayLogs = logs.filter(l => l.date === reportDate);
+  // Filter logs by date range (and optionally subject)
+  const personMap = {};
+  persons.forEach(p => { personMap[p.name] = p; });
+
+  const dayLogs = logs.filter(l => {
+    if (l.date < dateFrom || l.date > dateTo) return false;
+    if (filterSubject) {
+      const p = personMap[l.name] || {};
+      if ((p.subject||p.position||'') !== filterSubject) return false;
+    }
+    return true;
+  });
   const modeCount = {checkin:0, checkout:0, late:0, leave:0, offsite:0};
   dayLogs.forEach(l => { if (modeCount[l.mode] !== undefined) modeCount[l.mode]++; });
 
   // Summary boxes
+  const startY_boxes = lineY + 7;
+  const boxW = Math.floor((PW-30)/5);
   const boxes = [
     ['เข้างาน', modeCount.checkin, [74,140,28]],
     ['ออกงาน', modeCount.checkout, [180,60,30]],
@@ -1022,53 +1121,109 @@ async function generatePDF() {
   let bx = 15;
   boxes.forEach(([label, val, color]) => {
     doc.setDrawColor(...color); doc.setLineWidth(0.6);
-    doc.rect(bx, 54, 34, 16);
+    doc.rect(bx, startY_boxes, boxW, 16);
     doc.setFillColor(...color.map(c => Math.min(255, c+160)));
-    doc.rect(bx, 54, 34, 7, 'F');
+    doc.rect(bx, startY_boxes, boxW, 7, 'F');
     setNormal(8); doc.setTextColor(...color);
-    doc.text(label, bx+17, 59.5, {align:'center'});
+    doc.text(label, bx+boxW/2, startY_boxes+5.5, {align:'center'});
     setBold(14); doc.setTextColor(30);
-    doc.text(String(val), bx+17, 67, {align:'center'});
-    bx += 36;
+    doc.text(String(val), bx+boxW/2, startY_boxes+13, {align:'center'});
+    bx += boxW+1;
   });
 
-  // Table — sorted by subject group
+  const tableStartY = startY_boxes + 20;
   const modeMap = {checkin:'เข้างาน',checkout:'ออกงาน',late:'มาสาย',leave:'ลา',offsite:'ราชการ'};
   const leaveMap = {sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
 
-  // Build name→person map for subject lookup
-  const personMap = {};
-  persons.forEach(p => { personMap[p.name] = p; });
+  if (currentReportType === 'daily') {
+    // Daily: full log table
+    const tableData = dayLogs.map(l => {
+      const p = personMap[l.name] || {};
+      return [l.name||'-', p.subject||p.position||'-', l.time||'-',
+              modeMap[l.mode]||l.mode,
+              l.leaveSubType?(leaveMap[l.leaveSubType]||l.leaveSubType):'', l.note||''];
+    });
+    tableData.sort((a,b)=>(a[1]||'').localeCompare(b[1]||'','th'));
+    if (!tableData.length) tableData.push(['ไม่มีข้อมูลในวันนี้','','','','','']);
+    doc.autoTable({
+      startY: tableStartY,
+      head:[['ชื่อ-สกุล','กลุ่มสาระ/แผนก','เวลา','ประเภท','ประเภทการลา','หมายเหตุ']],
+      body: tableData,
+      styles:{font:'Sarabun',fontSize:9,cellPadding:2},
+      headStyles:{font:'Sarabun',fontStyle:'bold',fillColor:[74,140,28],textColor:255,fontSize:9},
+      alternateRowStyles:{fillColor:[245,248,242]},
+      columnStyles:{0:{cellWidth:48},1:{cellWidth:36},2:{cellWidth:18,halign:'center'},
+                    3:{cellWidth:22,halign:'center'},4:{cellWidth:24,halign:'center'},5:{cellWidth:'auto'}},
+      margin:{left:15,right:PW===297?15:15},
+    });
+  } else {
+    // Range/Monthly: per-person summary table
+    // Collect unique dates in range
+    const allDates = [...new Set(dayLogs.map(l=>l.date))].sort();
+    const nameSet = new Set(dayLogs.map(l=>l.name));
+    // Also include all registered persons (to show absent)
+    persons.forEach(p=>nameSet.add(p.name));
 
-  const tableData = dayLogs.map(l => {
-    const p = personMap[l.name] || {};
-    return [
-      l.name || '-',
-      p.subject || p.position || '-',
-      l.time || '-',
-      modeMap[l.mode] || l.mode,
-      l.leaveSubType ? (leaveMap[l.leaveSubType]||l.leaveSubType) : '',
-      l.note || '',
-    ];
-  });
+    // Build per-person stats
+    const summary = {};
+    nameSet.forEach(name => {
+      const p = personMap[name]||{};
+      summary[name] = {
+        subject: p.subject||p.position||'-',
+        checkin:0, late:0, leave:0, offsite:0, absent:0, earlyOut:0, totalDays:allDates.length
+      };
+    });
+    dayLogs.forEach(l => {
+      if (!summary[l.name]) return;
+      if (l.mode==='checkin') summary[l.name].checkin++;
+      else if (l.mode==='late') { summary[l.name].checkin++; summary[l.name].late++; }
+      else if (l.mode==='leave') summary[l.name].leave++;
+      else if (l.mode==='offsite') summary[l.name].offsite++;
+      if (l.earlyOut) summary[l.name].earlyOut++;
+    });
+    // Count absent (days with no checkin/late record)
+    const checkinDays = {}; // name → Set of dates
+    dayLogs.filter(l=>l.mode==='checkin'||l.mode==='late').forEach(l=>{
+      if (!checkinDays[l.name]) checkinDays[l.name]=new Set();
+      checkinDays[l.name].add(l.date);
+    });
+    const leaveDays = {};
+    dayLogs.filter(l=>l.mode==='leave'||l.mode==='offsite').forEach(l=>{
+      if (!leaveDays[l.name]) leaveDays[l.name]=new Set();
+      leaveDays[l.name].add(l.date);
+    });
+    nameSet.forEach(name => {
+      const came = (checkinDays[name]||new Set()).size;
+      const excused = (leaveDays[name]||new Set()).size;
+      summary[name].absent = Math.max(0, allDates.length - came - excused);
+    });
 
-  // Sort by subject
-  tableData.sort((a,b) => (a[1]||'').localeCompare(b[1]||'','th'));
-  if (!tableData.length) tableData.push(['ไม่มีข้อมูลในวันนี้','','','','','']);
+    const summaryData = [...nameSet].map(name => {
+      const s = summary[name];
+      return [name, s.subject,
+              String(s.checkin), String(s.late),
+              String(s.leave), String(s.offsite),
+              String(s.earlyOut), String(s.absent)];
+    });
+    summaryData.sort((a,b)=>(a[1]||'').localeCompare(b[1]||'','th'));
+    if (!summaryData.length) summaryData.push(['ไม่มีข้อมูล','','','','','','','']);
 
-  doc.autoTable({
-    startY: 75,
-    head: [['ชื่อ-สกุล','กลุ่มสาระ/แผนก','เวลา','ประเภท','ประเภทการลา','หมายเหตุ']],
-    body: tableData,
-    styles:{ font:'Sarabun', fontSize:9, cellPadding:2 },
-    headStyles:{ font:'Sarabun', fontStyle:'bold', fillColor:[74,140,28], textColor:255, fontSize:9 },
-    alternateRowStyles:{ fillColor:[245,248,242] },
-    columnStyles:{
-      0:{cellWidth:48}, 1:{cellWidth:36}, 2:{cellWidth:18,halign:'center'},
-      3:{cellWidth:22,halign:'center'}, 4:{cellWidth:24,halign:'center'}, 5:{cellWidth:'auto'}
-    },
-    margin:{left:15,right:15},
-  });
+    doc.autoTable({
+      startY: tableStartY,
+      head:[['ชื่อ-สกุล','กลุ่มสาระ/แผนก','มาเรียน','สาย','ลา','ราชการ','กลับก่อน','ขาด']],
+      body: summaryData,
+      styles:{font:'Sarabun',fontSize:9,cellPadding:2.5},
+      headStyles:{font:'Sarabun',fontStyle:'bold',fillColor:[26,111,181],textColor:255,fontSize:9},
+      alternateRowStyles:{fillColor:[240,247,255]},
+      columnStyles:{
+        0:{cellWidth:55},1:{cellWidth:45},
+        2:{cellWidth:20,halign:'center'},3:{cellWidth:16,halign:'center'},
+        4:{cellWidth:14,halign:'center'},5:{cellWidth:18,halign:'center'},
+        6:{cellWidth:22,halign:'center'},7:{cellWidth:14,halign:'center'}
+      },
+      margin:{left:15,right:15},
+    });
+  }
 
   // No-checkout section
   const checkedInPDF = new Set(dayLogs.filter(l=>l.mode==='checkin'||l.mode==='late').map(l=>l.name));
@@ -1146,7 +1301,7 @@ async function generatePDF() {
   doc.text('พิมพ์เมื่อ: ' + genTime, 15, 289);
   doc.text('หน้า 1/1', 195, 289, {align:'right'});
 
-  const fname = `attendance_${reportDate}.pdf`;
+  const fname = `attendance_${fileLabel}.pdf`;
   doc.save(fname);
   document.getElementById('pdfMsg').textContent = '✓ ดาวน์โหลด ' + fname + ' สำเร็จ';
   setTimeout(() => document.getElementById('pdfMsg').textContent='', 4000);
@@ -1332,8 +1487,25 @@ function showProg(pct) {
   document.getElementById('progBar').style.width = pct+'%';
 }
 
+// ── Report type switcher ───────────────────────────────────────────────────
+let currentReportType = 'daily';
+function switchReportType(type) {
+  currentReportType = type;
+  ['daily','range','monthly'].forEach(t => {
+    document.getElementById('rt-'+t).style.display = t===type ? 'block' : 'none';
+  });
+  document.querySelectorAll('#reportTypeTabs .tab').forEach((tab,i) => {
+    tab.classList.toggle('active', ['daily','range','monthly'][i]===type);
+  });
+}
+
 // Auto-initialize on load
-document.getElementById('reportDate').value = new Date().toISOString().slice(0,10);
+const _now = new Date();
+document.getElementById('reportDate').value = _now.toISOString().slice(0,10);
+document.getElementById('reportDateFrom').value = _now.toISOString().slice(0,10);
+document.getElementById('reportDateTo').value = _now.toISOString().slice(0,10);
+document.getElementById('reportMonth').value = _now.getMonth();
+document.getElementById('reportYear').value = _now.getFullYear() + 543;
 initFirebase();
 </script>
 </div><!-- close layout -->
